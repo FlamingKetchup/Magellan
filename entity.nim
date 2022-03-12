@@ -3,47 +3,63 @@ import tables, hashes
 type
   Entity = ref object of RootObj
 
+  Ship* = ref object of Entity
+    hull*: int
+
   Coord* = tuple
     x, y: int
 
   # Layer of the map
-  Layer[T: Entity] = object
-    # Height, Width
-    w, h: int
+  Layer[T] = object
+    # Width, Height
+    w, h: Positive
     entities: Table[Coord, T]
     positions: Table[T, Coord]
 
-proc initLayer[T](w, h: int): Layer[T] =
+  World* = object
+    w*, h*: Positive
+    ships*: Layer[Ship]
+
+proc initLayer[T](w, h: Positive): Layer[T] =
   result = Layer[T](w: w, h: h,
                     entities: initTable[Coord, T](),
                     positions: initTable[T, Coord]())
 
-proc hash(entity: Entity): Hash =
+proc initWorld*(w, h: Positive): World =
+  result = World(w: w, h: h, ships: initLayer[Ship](w, h))
+
+proc hash*(entity: Entity): Hash =
   result = cast[Hash](entity)
+
+proc contains*(l: Layer, key: Coord): bool =
+  result = key in l.entities
+
+proc contains*[T](l: Layer, key: T): bool =
+  result = key in l.positions
 
 # Least positive residue, aka modulo but always positive, as with number theory
 # Simlulates counting in a circle (counting up or down to a number, but
 # looping around when hitting the divisor, or negatives)
 proc lpr(dividend: int, divisor: Positive): int =
-  result = if dividend > 0: dividend mod divisor
+  result = if dividend >= 0: dividend mod divisor
            else: (dividend mod divisor) + divisor
 
 # Makes the map loop around in both axis
 # Loop around with coordinates that would otherwise be OOB
-proc normalize(l: Layer, coord: Coord): Coord =
+proc normalize*(l: Layer, coord: Coord): Coord =
   result = (x: lpr(coord.x, l.w), y: lpr(coord.y, l.h))
 
-proc `[]`[T](l: Layer[T], coord: Coord): T =
+proc `[]`*[T](l: Layer[T], coord: Coord): T =
   # Loop around with coordinates that would otherwise be OOB
   result = l.entities[l.normalize(coord)]
 
-proc `[]`[T](l: Layer[T], x, y: int): T =
+proc `[]`*[T](l: Layer[T], x, y: int): T =
   result = l.entities[(x: x, y: y)]
 
-proc `[]`[T](l: Layer[T], entity: T): Coord =
+proc `[]`*[T](l: Layer[T], entity: T): Coord =
   result = l.positions[entity]
 
-proc `[]=`[T](l: var Layer[T], coord: Coord, entity: T) =
+proc `[]=`*[T](l: var Layer[T], coord: Coord, entity: T) =
   # Clear original position
   if entity in l.positions:
     l.entities.del(l.positions[entity])
@@ -51,7 +67,7 @@ proc `[]=`[T](l: var Layer[T], coord: Coord, entity: T) =
   l.entities[l.normalize(coord)] = entity
   l.positions[entity] = l.normalize(coord)
 
-proc `[]=`[T](l: var Layer[T], x, y: int, entity: T) =
+proc `[]=`*[T](l: var Layer[T], x, y: int, entity: T) =
   l[(x: x, y: y)] = entity
 
 when isMainModule:
@@ -62,5 +78,11 @@ when isMainModule:
   echo test[entity]
   echo (x: 0, y: 0) in test.entities
   test[30, -20] = entity
-  echo test[entity]
+  echo test[entity] # 10, 10
   echo (x: 0, y: 0) in test.entities
+
+  var
+    w = initWorld(21, 21)
+    player = Ship(hull: 20)
+  w.ships[0, 0] = player
+  echo w.ships[player]
