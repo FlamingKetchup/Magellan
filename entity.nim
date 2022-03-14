@@ -1,10 +1,16 @@
 import tables, hashes
 
 type
+  Direction* = enum
+    N, NE, E, SE, S, SW, W, NW
+
   Entity = ref object of RootObj
 
   Ship* = ref object of Entity
     hull*: int
+    facing*: Direction
+
+  Land* = ref object of Entity
 
   Coord* = tuple
     x, y: int
@@ -19,6 +25,7 @@ type
   World* = object
     w*, h*: Positive
     ships*: Layer[Ship]
+    lands*: Layer[Land]
 
 proc initLayer[T](w, h: Positive): Layer[T] =
   result = Layer[T](w: w, h: h,
@@ -26,7 +33,8 @@ proc initLayer[T](w, h: Positive): Layer[T] =
                     positions: initTable[T, Coord]())
 
 proc initWorld*(w, h: Positive): World =
-  result = World(w: w, h: h, ships: initLayer[Ship](w, h))
+  result = World(w: w, h: h, ships: initLayer[Ship](w, h),
+                             lands: initLayer[Land](w, h))
 
 proc hash*(entity: Entity): Hash =
   result = cast[Hash](entity)
@@ -48,6 +56,9 @@ proc lpr(dividend: int, divisor: Positive): int =
 # Loop around with coordinates that would otherwise be OOB
 proc normalize*(l: Layer, coord: Coord): Coord =
   result = (x: lpr(coord.x, l.w), y: lpr(coord.y, l.h))
+
+proc normalize*(l: Layer, x, y: int): Coord =
+  result = l.normalize((x, y))
 
 proc `[]`*[T](l: Layer[T], coord: Coord): T =
   # Loop around with coordinates that would otherwise be OOB

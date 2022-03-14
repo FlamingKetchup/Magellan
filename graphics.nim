@@ -1,6 +1,7 @@
 import illwill, entity
 
-var tb = newTerminalBuffer(21, 21)
+const visRange = 10
+var tb = newTerminalBuffer(2*visRange + 1, 2*visRange + 1)
 
 proc initGraphics*() =
   illwillInit()
@@ -8,13 +9,18 @@ proc initGraphics*() =
 
 proc drawWorld*(w: World, player: Ship) =
   let (playerX, playerY) = w.ships[player]
-  for x in playerX-10 ..< playerX+11:
-    for y in playerY-10 ..< playerY+11:
-      var coord = w.ships.normalize((x, y))
+  for x in playerX-visRange ..< playerX+visRange+1:
+    for y in playerY-visRange ..< playerY+visRange+1:
+      var
+        coord = w.ships.normalize(x, y)
+        relCoord = w.ships.normalize(coord.x - playerX + 10,
+                                     coord.y - playerY + 10)
+      if not(coord in w.lands):
+        tb.write(relCoord.x, relCoord.y, fgBlue, "≈", resetStyle)
+      else:
+        tb.write(relCoord.x, relCoord.y, fgGreen, "#", resetStyle)
       if coord in w.ships:
-        var (shipX, shipY) = w.ships.normalize((coord.x - playerX + 10,
-                                                coord.y - playerY + 10))
-        tb.write(shipX, shipY, "S")
+        tb.write(relCoord.x, relCoord.y, "S")
   tb.write(10, 10, "@")
 
 proc display*() =
