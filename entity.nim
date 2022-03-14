@@ -7,8 +7,9 @@ type
   Entity = ref object of RootObj
 
   Ship* = ref object of Entity
-    hull*: int
+    hull*, supplies*: int
     facing*: Direction
+    dx*, dy*: int
 
   Land* = ref object of Entity
 
@@ -26,6 +27,18 @@ type
     w*, h*: Positive
     ships*: Layer[Ship]
     lands*: Layer[Land]
+
+proc left*(dir: Direction): Direction = 
+  result = if dir == N: NW else: pred(dir)
+
+proc right*(dir: Direction): Direction = 
+  result = if dir == NW: N else: succ(dir)
+
+proc turnLeft*(dir: var Direction) =
+  dir = left(dir)
+
+proc turnRight*(dir: var Direction) =
+  dir = right(dir)
 
 proc initLayer[T](w, h: Positive): Layer[T] =
   result = Layer[T](w: w, h: h,
@@ -51,6 +64,10 @@ proc contains*[T](l: Layer, key: T): bool =
 proc lpr(dividend: int, divisor: Positive): int =
   result = if dividend >= 0: dividend mod divisor
            else: (dividend mod divisor) + divisor
+
+# North is used as downwind, South is upwind
+proc relativeWindDir*(wind, ship: Direction): Direction =
+  result = Direction(lpr(ord(wind) - ord(ship), 8))
 
 # Makes the map loop around in both axis
 # Loop around with coordinates that would otherwise be OOB
@@ -80,6 +97,26 @@ proc `[]=`*[T](l: var Layer[T], coord: Coord, entity: T) =
 
 proc `[]=`*[T](l: var Layer[T], x, y: int, entity: T) =
   l[(x: x, y: y)] = entity
+
+proc move*(w: var World, s: Ship, dist: int) =
+  let
+    (x, y) = case s.facing
+    of N: (0, -1)
+    of NE: (1, -1)
+    of E: (1, 0)
+    of SE: (1, 1)
+    of S: (0, 1)
+    of SW: (-1, 1)
+    of W: (-1, 0)
+    of NW: (-1, -1)
+    coord = w.ships[s]
+  for i in 0..<dist:
+    if (coord.x + x, coord.y + y) in w.lands:
+      s.hull -= 1
+    else:
+      w.ships[coord.x + x, coord.y + y] = s
+      s.dx += x
+      s.dy += y
 
 when isMainModule:
   var

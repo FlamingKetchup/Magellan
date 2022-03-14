@@ -38,6 +38,8 @@ proc generateWorld*(w, h: Positive): World =
       if (noiseX[x] + noiseY[y])/2 > 0.6:
         result.lands[x, y] = Land()
       
+randomize()
+
 when isMainModule:
   echo singFreqNoise(1, 10)
   echo noise(frequencies, 30)
