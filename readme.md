@@ -1,5 +1,5 @@
 # Magellan
-A game for 7drl 2022
+A game for 7drl 2022<br/>
 Use Q/E to turn left/right, "." to wait
 
 Made using [Nim](https://nim-lang.org/) and [illwill](https://github.com/johnnovak/illwill)
